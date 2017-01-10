@@ -23,10 +23,6 @@
 
 #include "zint.h"
 
-
-using namespace zbar;
-using namespace cv;
-
 typedef struct parameter Parameter;
 struct parameter {
   float alpha;
@@ -36,8 +32,8 @@ struct parameter {
 
 int thresh = 100;
 int max_thresh = 255;
-RNG rng(12345);
-Mat src_gray;
+cv::RNG rng(12345);
+cv::Mat src_gray;
 
 struct zint_symbol *my_symbol;
 
@@ -49,18 +45,15 @@ void thresh_callback(int, void* );
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
-
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-
     addListSymbology();
-
     on_radioText_clicked();
 }
+
 void MainWindow::addListSymbology()
 {
-
     ui->cbListCode->removeItem(0);
     ui->cbListCode->addItem("Standard Code 2 of 5");    //2
     ui->cbListCode->addItem("Interleaved 2 of 5");      //3
@@ -84,35 +77,33 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_ImageButton_clicked()
 {
-    cvReleaseCapture;
-    int n;
     //Tim den file anh can giai ma
-    strFilePath = QFileDialog::getOpenFileName(this, tr("Open a image"), QDir::currentPath(), tr("Image Files (*.jpg *.jpeg *.png)"));
-    if(strFilePath.size())
-    {
+    strFilePath = QFileDialog::getOpenFileName(this, tr("Open a image"),
+                    QDir::currentPath(), tr("Image Files (*.jpg *.jpeg *.png)"));
+    if (strFilePath.size()) {
 
        IplImage *src = cvLoadImage((const char*)strFilePath.toLatin1().data(),CV_LOAD_IMAGE_COLOR);
 
         // Create a QImage to show the captured images
-        QImage img_show = QImage((const unsigned char*)(src->imageData),src->width,src->height,QImage::Format_RGB888).rgbSwapped();
+        QImage img_show = QImage((const unsigned char*)(src->imageData),
+                            src->width,src->height,QImage::Format_RGB888).rgbSwapped();
         ui->showlabel->setPixmap(QPixmap::fromImage(img_show,Qt::AutoColor).scaledToWidth(300));
-        n=ScanImage(src);
-        //if(n>0)
-        {
-          //  cvReleaseCapture(&capture);
-        }
+        int n = ScanImage(src);
+#if 0
+        if (n > 0)
+            cvReleaseCapture(&capture);
+#endif
     }
 }
+
 void MainWindow::on_VideoButton_clicked()
 {
 
     strFilePath = QFileDialog::getOpenFileName(this, tr("Open a video"), QDir::currentPath(), tr("Video Files (*.mp4 *.flv *.wmv)"));
     capture=cvCaptureFromFile(strFilePath.toLatin1().data());
-    if(capture)
-    {
+    if(capture) {
         timer = new QTimer(this);
         QObject::connect(timer,SIGNAL(timeout()),this,SLOT(ProcessFrame()));
-
         timer->start(1000/30);
     }
     else ui->textResult->setText("Cannot connect to Camera!");
@@ -120,66 +111,46 @@ void MainWindow::on_VideoButton_clicked()
 
 void MainWindow::on_CameraButton_clicked()
 {
-    //Kiem tra trang thai bat tat cua camera
-    if(capture == 0)
-    {
+    if(capture == 0) {
         capture = cvCaptureFromCAM(CV_CAP_ANY);
-        if(capture)
-        {
-            cvSetCaptureProperty(capture,CV_CAP_PROP_FRAME_HEIGHT,1600);
-            cvSetCaptureProperty(capture,CV_CAP_PROP_FRAME_WIDTH,1600);
+        if(capture) {
+            cvSetCaptureProperty(capture, CV_CAP_PROP_FRAME_HEIGHT, 1600);
+            cvSetCaptureProperty(capture, CV_CAP_PROP_FRAME_WIDTH, 1600);
 
             timer = new QTimer(this);
-
-            QObject::connect(timer,SIGNAL(timeout()),this,SLOT(ProcessFrame()));
-
+            QObject::connect(timer, SIGNAL(timeout()), this, SLOT(ProcessFrame()));
             timer->start(1000/30);
         }
         else ui->textResult->setText("Cannot connect to Camera!");
     }
-
-    return ;
 }
 
 int MainWindow::ScanImage(IplImage *src)
 {
-
-    IplImage *img = cvCreateImage(cvSize(src->width,src->height), IPL_DEPTH_8U,1);
-
+    IplImage *img = cvCreateImage(cvSize(src->width, src->height), IPL_DEPTH_8U, 1);
     cvCvtColor( src, img, CV_RGB2GRAY );
 
     //Su dung thu vien Zbar de giai ma
-
     uchar* raw = (uchar *)img->imageData;
     int width = img->width;
     int height = img->height;
 
-    ImageScanner *scanner=new ImageScanner();
+    zbar::ImageScanner *scanner = new zbar::ImageScanner();
+    scanner->set_config(zbar::ZBAR_NONE, zbar::ZBAR_CFG_ENABLE, 1);
+    zbar::Image *zimg = new zbar::Image(width, height, "Y800", raw, width*height);
+    int n = scanner->scan(*zimg);
 
-    scanner->set_config(ZBAR_NONE, ZBAR_CFG_ENABLE, 1);
-
-    Image *zimg = new Image(width,height,"Y800",raw,width*height);
-
-    int n=scanner->scan(*zimg);
-
-    if(n>0)
-    {
-        for(Image::SymbolIterator symbol = zimg->symbol_begin(); symbol != zimg->symbol_end(); ++symbol)
-        {
+    if (n > 0) {
+        for(zbar::Image::SymbolIterator symbol = zimg->symbol_begin();
+            symbol != zimg->symbol_end(); ++symbol) {
             //Hien thi ket qua len Textbox
             ui->textResult->setPlainText(QString::fromStdString(symbol->get_data()));
         }
-
-    }
-
-    else
-    {
+    } else {
         ui->textResult->setPlainText("Cannot Detect Code!");
     }
-
     //Giai phong tai nguyen
     zimg->set_data(NULL, 0);
-
     return n;
 }
 
@@ -191,9 +162,7 @@ void MainWindow::ProcessFrame()
     ui->showlabel->setPixmap(QPixmap::fromImage(img_show,Qt::AutoColor).scaledToWidth(300));
 
     int n = ScanImage(src);
-
-    if(n)
-    {
+    if (n) {
         timer->stop();
         cvReleaseCapture(&capture);
     }
@@ -222,6 +191,7 @@ void MainWindow::createEncode()
 
     showImageEncode();
 }
+
 void MainWindow::createEncodeQR()
 {
     QString content="";
@@ -256,7 +226,6 @@ void MainWindow::on_btEncode_clicked()
     }
 
 }
-
 
 void MainWindow::showImageEncode()
 {
@@ -296,6 +265,7 @@ void MainWindow::disableBarcode()
     ui->groupQr2->setTitle("Input barcode:");
     ui->label_content->hide();
 }
+
 void MainWindow::enableQRcode()
 {
     ui->groupQr1->show();
@@ -303,21 +273,21 @@ void MainWindow::enableQRcode()
     ui->label_content->show();
     ui->textBarcode->hide();
 }
+
 void MainWindow::on_cbListCode_currentIndexChanged()
 {
     switch (ui->cbListCode->currentIndex())
     {
-    case 0: {symbology=2;disableBarcode();break;}
-    case 1: {symbology=3;disableBarcode();break;}
-        case 2: symbology=8;disableBarcode();break;
-        case 3: symbology=9;disableBarcode();break;
-        case 4: symbology=13;disableBarcode();break;
-        case 5: symbology=34;disableBarcode();break;
-        case 6: symbology=37;disableBarcode();break;
-        case 7: symbology=55;disableBarcode();break;
-        case 8: symbology=60;disableBarcode();break;
-        case 9:
-        {
+        case 0: symbology=2; disableBarcode(); break;
+        case 1: symbology=3; disableBarcode(); break;
+        case 2: symbology=8; disableBarcode(); break;
+        case 3: symbology=9; disableBarcode(); break;
+        case 4: symbology=13; disableBarcode(); break;
+        case 5: symbology=34; disableBarcode(); break;
+        case 6: symbology=37; disableBarcode(); break;
+        case 7: symbology=55; disableBarcode(); break;
+        case 8: symbology=60; disableBarcode(); break;
+        case 9: {
             symbology=58;
             enableQRcode();
             break;
@@ -327,7 +297,8 @@ void MainWindow::on_cbListCode_currentIndexChanged()
 
 void MainWindow::on_btnSave_clicked()
 {
-    strFilePath = QFileDialog::getOpenFileName(this, tr("Open a video"), QDir::currentPath(), tr("Video Files (*.mp4 *.flv *.wmv)"));
+    strFilePath = QFileDialog::getOpenFileName(this, tr("Open a video"),
+                    QDir::currentPath(), tr("Video Files (*.mp4 *.flv *.wmv)"));
     capture=cvCaptureFromFile(strFilePath.toLatin1().data());
     if(capture)
     {
@@ -342,8 +313,8 @@ void MainWindow::on_btnSave_clicked()
 
 void MainWindow::on_pushButton_2_clicked()
 {
-    strFilePath = QFileDialog::getOpenFileName(this, tr("Open a image"), QDir::currentPath(), tr("Image Files (*.jpg *.jpeg *.png)"));
-
+    strFilePath = QFileDialog::getOpenFileName(this, tr("Open a image"), QDir::currentPath(),
+                                               tr("Image Files (*.jpg *.jpeg *.png)"));
     if(strFilePath.size())
     {
         cv::Mat test;
@@ -355,43 +326,44 @@ void MainWindow::on_pushButton_2_clicked()
 
         /// Convert it to gray,blue
         cvtColor( test, src_gray, CV_BGR2GRAY );
-        blur(src_gray,src_gray,Size(1,1));
+        blur(src_gray,src_gray,cv::Size(1,1));
         /// Create Window
         char* source_window = "Source";
-        namedWindow( source_window, CV_WINDOW_NORMAL );
+        cv::namedWindow( source_window, CV_WINDOW_NORMAL );
         imshow( source_window, test );
-        createTrackbar( " Threshold:", "Source", &thresh, max_thresh,thresh_callback);
+        cv::createTrackbar( " Threshold:", "Source", &thresh, max_thresh, thresh_callback);
         thresh_callback( 0, 0);
 
     }
 }
+
 void thresh_callback(int, void*)
 {
 
     //Mat src_copy = src.clone();
-    Mat threshold_output;
-    std::vector<std::vector<Point> > contours;
-    std::vector<Vec4i> hierarchy;
+    cv::Mat threshold_output;
+    std::vector<std::vector<cv::Point> > contours;
+    std::vector<cv::Vec4i> hierarchy;
     /// Detect edges using Threshold
-    threshold( src_gray, threshold_output, thresh, 255, THRESH_BINARY );
+    threshold(src_gray, threshold_output, thresh, 255, cv::THRESH_BINARY);
     /// Find contours
-    findContours( threshold_output, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
+    findContours(threshold_output, contours, hierarchy, CV_RETR_TREE,
+                  CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
     /// Find the convex hull object for each contour
-    std::vector<std::vector<Point> >hull( contours.size() );
-    for( int i = 0; i < contours.size(); i++ )
-    { convexHull( Mat(contours[i]), hull[i], false ); }
+    std::vector<std::vector<cv::Point> >hull(contours.size());
+    for(int i = 0; i < contours.size(); i++) {
+        convexHull(cv::Mat(contours[i]), hull[i], false);
+    }
     /// Draw contours + hull results
-    Mat drawing = Mat::zeros( threshold_output.size(), CV_8UC3 );
-    for( int i = 0; i< contours.size(); i++ )
-    {
-    Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
-    drawContours( drawing, contours, i, color, 1, 8, std::vector<Vec4i>(), 0, Point() );
-    drawContours( drawing, hull, i, color, 1, 8, std::vector<Vec4i>(), 0, Point() );
+    cv::Mat drawing = cv::Mat::zeros(threshold_output.size(), CV_8UC3);
+    for(int i = 0; i< contours.size(); i++) {
+        cv::Scalar color = cv::Scalar(rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255));
+        drawContours(drawing, contours, i, color, 1, 8, std::vector<cv::Vec4i>(), 0, cv::Point() );
+        drawContours(drawing, hull, i, color, 1, 8, std::vector<cv::Vec4i>(), 0, cv::Point() );
     }
     /// Show in a window
-    namedWindow( "Hull demo", CV_WINDOW_NORMAL);
-    imshow( "Hull demo", drawing );
-
+    cv::namedWindow("Hull demo", CV_WINDOW_NORMAL);
+    imshow("Hull demo", drawing);
 }
 
 void MainWindow::use_drawRectangle()
@@ -464,11 +436,13 @@ void MainWindow::use_drawRectangle()
 
 
 }
+
 void MainWindow::snake()
 {
 
 
 }
+
 void MainWindow::on_pushButton_3_clicked()
 {
     strFilePath = QFileDialog::getOpenFileName(this, tr("Open a video"), QDir::currentPath(), tr("Video Files (*.mp4 *.flv *.wmv)"));
@@ -545,6 +519,7 @@ void MainWindow::on_radioContact_clicked()
     ui->textResult_4->show();
     ui->textResult_4->resize(341,30);
 }
+
 void MainWindow::clearAll()
 {
     ui->textResult_2->setText("");
