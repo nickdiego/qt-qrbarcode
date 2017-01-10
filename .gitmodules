@@ -1,0 +1,5 @@
+[submodule "3rdparty/ZBar"]
+	path = 3rdparty/ZBar
+	url = git@github.com:nickdiego/ZBar.git
+	ignore = dirty
+
