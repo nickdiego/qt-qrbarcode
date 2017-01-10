@@ -1,0 +1,8 @@
+*~
+*.exe
+*.o
+*.swp
+*.user
+*.autosave
+.build*
+.deploy*
