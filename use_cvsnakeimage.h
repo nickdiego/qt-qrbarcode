@@ -1,21 +1,27 @@
 #ifndef USE_CVSNAKEIMAGE_H
 #define USE_CVSNAKEIMAGE_H
-#include <QMessageBox>
-#include <QtWidget/QWidget>
-#include <QTimer>
-#include <QFileDialog>
+
+#include "mainwindow.h"
+#include "ui_mainwindow.h"
+
+#include <QtCore/QTimer>
+#include <QtWidgets/QMessageBox>
+#include <QtWidgets/QWidget>
+#include <QtWidgets/QFileDialog>
+
 #include "opencv/cv.h"
 #include "opencv/highgui.h"
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+//#include "opencv2/legacy/legacy.hpp"
+
 #include "zbar.h"
 #include "zbar/Image.h"
 #include "zbar/ImageScanner.h"
 #include "zbar/Video.h"
-#include <zint.h>
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
-#include <opencv2/legacy/legacy.hpp>
-#include "mainwindow.h"
-#include "ui_mainwindow.h"
+
+#include "zint.h"
+
 using namespace zbar;
 using namespace cv;
 

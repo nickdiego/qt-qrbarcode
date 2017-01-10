@@ -1,21 +1,28 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+
+#include <vector>
+#include <cstdio>
+#include <cstdlib>
+
+#include <QtCore/QTimer>
+#include <QtWidgets/QFileDialog>
+#include <QtWidgets/QMessageBox>
+#include <QtWidgets/QWidget>
+
 #include "opencv/cv.h"
 #include "opencv/highgui.h"
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+//#include <opencv2/legacy/legacy.hpp>
+
 #include "zbar.h"
 #include "zbar/Image.h"
 #include "zbar/ImageScanner.h"
-#include "QFileDialog"
 #include "zbar/Video.h"
-#include "QMessageBox"
-#include "QWidget"
-#include "QTimer"
-#include <zint.h>
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
-#include <opencv2/legacy/legacy.hpp>
-#include <stdio.h>
-#include <stdlib.h>
+
+#include "zint.h"
+
 
 using namespace zbar;
 using namespace cv;
@@ -84,7 +91,7 @@ void MainWindow::on_ImageButton_clicked()
     if(strFilePath.size())
     {
 
-       IplImage *src = cvLoadImage((const char*)strFilePath.toAscii().data(),CV_LOAD_IMAGE_COLOR);
+       IplImage *src = cvLoadImage((const char*)strFilePath.toLatin1().data(),CV_LOAD_IMAGE_COLOR);
 
         // Create a QImage to show the captured images
         QImage img_show = QImage((const unsigned char*)(src->imageData),src->width,src->height,QImage::Format_RGB888).rgbSwapped();
@@ -100,7 +107,7 @@ void MainWindow::on_VideoButton_clicked()
 {
 
     strFilePath = QFileDialog::getOpenFileName(this, tr("Open a video"), QDir::currentPath(), tr("Video Files (*.mp4 *.flv *.wmv)"));
-    capture=cvCaptureFromFile(strFilePath.toAscii().data());
+    capture=cvCaptureFromFile(strFilePath.toLatin1().data());
     if(capture)
     {
         timer = new QTimer(this);
@@ -151,7 +158,7 @@ int MainWindow::ScanImage(IplImage *src)
 
     scanner->set_config(ZBAR_NONE, ZBAR_CFG_ENABLE, 1);
 
-    Image *zimg=new Image(width,height,"Y800",raw,width*height);
+    Image *zimg = new Image(width,height,"Y800",raw,width*height);
 
     int n=scanner->scan(*zimg);
 
@@ -205,9 +212,9 @@ void MainWindow::createEncode()
     {
         content = ui->textBarcode->toPlainText();
         unsigned char * sequence=NULL;
-        sequence=(unsigned char*)qstrdup(content.toAscii().constData());
+        sequence=(unsigned char*)qstrdup(content.toLatin1().constData());
 
-        //strcpy(my_symbol->outfile,(char*)qstrdup(content.toAscii().constData()));
+        //strcpy(my_symbol->outfile,(char*)qstrdup(content.toLatin1().constData()));
 
         ZBarcode_Encode_and_Print(my_symbol,sequence,0,0);
     }
@@ -226,9 +233,9 @@ void MainWindow::createEncodeQR()
     {
         content = ui->textResult_2->toPlainText()+" "+ui->textResult_3->toPlainText()+" "+ui->textResult_4->toPlainText();
         unsigned char * sequence=NULL;
-        sequence=(unsigned char*)qstrdup(content.toAscii().constData());
+        sequence=(unsigned char*)qstrdup(content.toLatin1().constData());
 
-        //strcpy(my_symbol->outfile,(char*)qstrdup(content.toAscii().constData()));
+        //strcpy(my_symbol->outfile,(char*)qstrdup(content.toLatin1().constData()));
 
         ZBarcode_Encode_and_Print(my_symbol,sequence,0,0);
     }
@@ -255,7 +262,7 @@ void MainWindow::showImageEncode()
 {
     QString path = QDir::currentPath()+"/out.png";
 
-    IplImage *src = cvLoadImage((const char*)path.toAscii().data(),CV_LOAD_IMAGE_COLOR);
+    IplImage *src = cvLoadImage((const char*)path.toLatin1().data(),CV_LOAD_IMAGE_COLOR);
 
      QImage img_show = QImage((const unsigned char*)(src->imageData),src->width,src->height,QImage::Format_RGB888).rgbSwapped();
      ui->showlabel_2->setPixmap(QPixmap::fromImage(img_show,Qt::AutoColor).scaledToWidth(185));
@@ -267,7 +274,7 @@ void MainWindow::readFromFileText()
     barcode=ZBarcode_Create();
     strFilePath=QFileDialog::getOpenFileName(this,tr("Open file text"),QDir::currentPath(),tr("Text file(*.txt)"));
     char * sequence=NULL;
-    sequence=(char*)qstrdup(strFilePath.toAscii().constData());
+    sequence=(char*)qstrdup(strFilePath.toLatin1().constData());
     if(barcode!=NULL)
     {
         ZBarcode_Encode_File_and_Print(barcode,sequence,0);
@@ -321,7 +328,7 @@ void MainWindow::on_cbListCode_currentIndexChanged()
 void MainWindow::on_btnSave_clicked()
 {
     strFilePath = QFileDialog::getOpenFileName(this, tr("Open a video"), QDir::currentPath(), tr("Video Files (*.mp4 *.flv *.wmv)"));
-    capture=cvCaptureFromFile(strFilePath.toAscii().data());
+    capture=cvCaptureFromFile(strFilePath.toLatin1().data());
     if(capture)
     {
         timer = new QTimer(this);
@@ -342,7 +349,7 @@ void MainWindow::on_pushButton_2_clicked()
         cv::Mat test;
 
         char * sequence=NULL;
-        sequence=(char*)qstrdup(strFilePath.toAscii().constData());
+        sequence=(char*)qstrdup(strFilePath.toLatin1().constData());
         test=cv::imread(sequence);
         //test=cv::imread(strFilePath);
 
@@ -363,14 +370,14 @@ void thresh_callback(int, void*)
 
     //Mat src_copy = src.clone();
     Mat threshold_output;
-    vector<vector<Point> > contours;
-    vector<Vec4i> hierarchy;
+    std::vector<std::vector<Point> > contours;
+    std::vector<Vec4i> hierarchy;
     /// Detect edges using Threshold
     threshold( src_gray, threshold_output, thresh, 255, THRESH_BINARY );
     /// Find contours
     findContours( threshold_output, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
     /// Find the convex hull object for each contour
-    vector<vector<Point> >hull( contours.size() );
+    std::vector<std::vector<Point> >hull( contours.size() );
     for( int i = 0; i < contours.size(); i++ )
     { convexHull( Mat(contours[i]), hull[i], false ); }
     /// Draw contours + hull results
@@ -378,8 +385,8 @@ void thresh_callback(int, void*)
     for( int i = 0; i< contours.size(); i++ )
     {
     Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
-    drawContours( drawing, contours, i, color, 1, 8, vector<Vec4i>(), 0, Point() );
-    drawContours( drawing, hull, i, color, 1, 8, vector<Vec4i>(), 0, Point() );
+    drawContours( drawing, contours, i, color, 1, 8, std::vector<Vec4i>(), 0, Point() );
+    drawContours( drawing, hull, i, color, 1, 8, std::vector<Vec4i>(), 0, Point() );
     }
     /// Show in a window
     namedWindow( "Hull demo", CV_WINDOW_NORMAL);
@@ -465,7 +472,7 @@ void MainWindow::snake()
 void MainWindow::on_pushButton_3_clicked()
 {
     strFilePath = QFileDialog::getOpenFileName(this, tr("Open a video"), QDir::currentPath(), tr("Video Files (*.mp4 *.flv *.wmv)"));
-    capture=cvCaptureFromFile(strFilePath.toAscii().data());
+    capture=cvCaptureFromFile(strFilePath.toLatin1().data());
     if(capture)
     {
         timer = new QTimer(this);
@@ -550,5 +557,5 @@ void MainWindow::on_btEncode_2_clicked()
     //QMessageBox::information(this,"", QFileDialog::getSaveFileName(this,tr("Save File"),QDir::currentPath(),tr("Files Format (*.png)")));
      strFilePath = QFileDialog::getSaveFileName(this,tr("Save File"),QDir::currentPath(),tr("PNG (*.png)"));
      char *m="agfdsaf";
-    strcpy(strFilePath.toAscii().data() ,m);
+    strcpy(strFilePath.toLatin1().data() ,m);
 }

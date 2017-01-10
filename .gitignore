@@ -4,5 +4,6 @@
 *.swp
 *.user
 *.autosave
-.build*
+*.stash
+.build/
 .deploy*

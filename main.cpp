@@ -1,9 +1,10 @@
-#include <QtGui/QGuiApplication>
+#include <QtWidgets>
+
 #include "mainwindow.h"
 
 int main(int argc, char *argv[])
 {
-    QGuiApplication a(argc, argv);
+    QApplication a(argc, argv);
     MainWindow w;
     w.show();
     

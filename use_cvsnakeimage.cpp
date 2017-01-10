@@ -2,7 +2,7 @@
 
 use_cvSnakeImage::use_cvSnakeImage(IplImage *source)
 {
-    int i, j = 0, c;
+      int i, j = 0, c;
       IplImage *src_img, *dst_img;
 
       CvPoint *contour;
